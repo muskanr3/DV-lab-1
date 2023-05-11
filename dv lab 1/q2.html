@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+    <script src="https://d3js.org/d3-axis.v2.min.js"></script>
+
+</head>
+
+<body>
+    <div id="chart"></div>
+    <select id="yearChoice">
+        <option value="2011">2011</option>
+        <option value="2012">2012</option>
+        <option value="2013">2013</option>
+    </select>
+    <svg width="500" height="500">
+    </svg>
+    <script>
+        var svg = d3.select("svg")
+        svg.append("g")
+        const width = +svg.attr("width")
+        const height = +svg.attr("height")
+        const margin = { "top": 20, "bottom": 40, "left": 50, "right": 0 }
+
+        const render = (data, selectedYearX, selectedYearY, selectedYearR) => {
+            console.log("in render")
+            console.log(data)
+
+            const yVal = d => d[selectedYearY]
+            const xVal = d => d[selectedYearX]
+            const rVal = d => d[selectedYearR]
+            const nameVal = d => d.Name
+            const innerWidth = width - margin.left - margin.right
+            const innerHeight = width - margin.top - margin.bottom
+
+            const xScale = d3.scalePoint()
+                .domain(data.sort((a, b) => xVal(a) - xVal(b)).map(xVal))
+                .range([0, innerWidth])
+                .padding(0.5);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, yVal)])
+                .range([innerHeight, 0])
+
+            const rScale = d3.scaleLinear()
+                .domain([0, d3.max(data, rVal)])
+                .range([0, 20])
+
+            const yAxis = d3.axisLeft(yScale)
+            const xAxis = d3.axisBottom(xScale)
+                .tickFormat(d3.format(".0f"));
+
+            const g = svg.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+            yAxis(g.append("g"))
+            xAxis(g.append("g")
+                .attr("transform", `translate(0, ${innerHeight})`))
+
+            svg.append("text")
+                .attr("x", "250")
+                .attr("y", "490")
+                .text("x-axis")
+            svg.append("text")
+                .attr("x", "-160")
+                .attr("y", "40")
+                .attr("transform", "rotate(-90,20, 50)")
+                .text("data")
+
+            g.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(xVal(d)))
+                .attr("cy", d => yScale(yVal(d)))
+                .attr("r", d => rScale(rVal(d)))
+                .attr("fill", "steelblue")
+                .on("mouseover", function (event, d) { // modify mouseover listener
+                    d3.select(this).style("fill", "green");
+                    tooltip.style("visibility", "visible")
+                        .html("X: " + xVal(d) + "<br/> Y: " + yVal(d) + "<br/> R: " + rVal(d) + "<br/> Name: " + nameVal(d))
+                        .style("top", (event.pageY - 10) + "px").style("left", (event.pageX + 10) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).style("fill", "steelblue");
+                    tooltip.style("visibility", "hidden");
+                })
+        }
+
+        const selectYear = document.getElementById("yearChoice")
+        let selectedYearX = "X2011"
+        let selectedYearY = "Y2011"
+        let selectedYearR = "R2011"
+
+        selectYear.addEventListener("change", () => {
+            console.log("in listener")
+            selectedYearX = "X" + selectYear.value
+            selectedYearY = "Y" + selectYear.value
+            selectedYearR = "R" + selectYear.value
+
+            console.log(selectedYearX)
+            svg.selectAll("*").remove() // remove previous graphs
+            render(data, selectedYearX, selectedYearY, selectedYearR)
+
+        })
+        async function loadData() {
+            data = await d3.csv("yearwise.csv", d => {
+                // change the string values to numbers for all years
+                d.X2011 = +d.X2011
+                d.X2012 = +d.X2012
+                d.X2013 = +d.X2013
+
+                return d;
+            });
+            console.log("no change = ", selectedYearX)
+            render(data, selectedYearX, selectedYearY, selectedYearR)
+
+        }
+        loadData();
+
+        var tooltip = d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .style("font-family", "'Open Sans', sans-serif")
+            .style("font-size", "12px")
+            .style("z-index", "10")
+            .style("visibility", "hidden");
+    </script>
+</body>
+
+</html>

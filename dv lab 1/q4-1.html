@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+    <script src="https://d3js.org/d3-axis.v2.min.js"></script>
+
+</head>
+
+<body>
+    <div id="chart"></div>
+    <svg width="500" height="500">
+    </svg>
+    <script>
+        var svg = d3.select("svg")
+        svg.append("g")
+        const width = +svg.attr("width")
+        const height = +svg.attr("height")
+        const margin = { "top": 20, "bottom": 40, "left": 40, "right": 0 }
+
+        const render = (data) => {
+            // console.log(data)
+
+            var race_ethinicity_count = {};
+            data.forEach(function (d) {
+                var race_ethnicity = d.race_ethnicity;
+                if (race_ethinicity_count[race_ethnicity] === undefined) {
+                    race_ethinicity_count[race_ethnicity] = 0;
+                } else {
+                    race_ethinicity_count[race_ethnicity] = race_ethinicity_count[race_ethnicity] + 1;
+                }
+                console.log(race_ethnicity)
+            });
+
+            data.forEach(function (d) {
+                var race_ethnicity = d.race_ethnicity;
+                d.count = race_ethinicity_count[race_ethnicity];
+            });
+
+            const xVal = d => d.race_ethnicity
+            const nameVal = d => d.race_ethnicity
+            const yVal = d => d.count
+            const innerWidth = width - margin.left - margin.right
+            const innerHeight = height - margin.top - margin.bottom
+
+            console.log("inner = ", innerWidth)
+            const xScale = d3.scaleBand()
+                .domain(data.map(xVal))
+                .range([0, innerWidth])
+                .padding(0.1)
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(data, yVal)])
+                .range([innerHeight, 0])
+
+            const yAxis = d3.axisLeft(yScale)
+            const xAxis = d3.axisBottom(xScale)
+
+            const g = svg.append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+            yAxis(g.append("g"))
+            xAxis(g.append("g").attr("transform", `translate(0, ${innerHeight})`))
+
+            svg.append("text")
+                .attr("x", "250")
+                .attr("y", "490")
+                .text("x-axis")
+            svg.append("text")
+                .attr("x", "-170")
+                .attr("y", "40")
+                .attr("transform", "rotate(-90,20, 50)")
+                .text("data")
+
+            g.selectAll("rect")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("x", d => xScale(d.race_ethnicity))
+                .attr("y", d => yScale(d.count))
+                .attr("width", xScale.bandwidth())
+                .attr("height", d => innerHeight - yScale(d.count))
+                .attr("fill", "steelblue")
+        }
+
+        async function loadData() {
+            data = await d3.csv("oscar_demographics.csv", d => {
+                return d;
+            });
+            render(data)
+        }
+        loadData();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Bar Chart</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://d3js.org/d3-scale.v3.min.js"></script>
+    <script src="https://d3js.org/d3-axis.v2.min.js"></script>
+</head>
+
+<body>
+    <div id="chart"></div>
+    <svg width="700" height="500"></svg>
+    <script>
+        var svg = d3.select("svg");
+        svg.append("g");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+        const margin = { top: 20, bottom: 40, left: 40, right: 100 };
+
+        const render = (data) => {
+            const svg = d3
+                .select("#chart")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr(
+                    "transform",
+                    "translate(" + margin.left + "," + margin.top + ")"
+                );
+
+            var legendData = [
+                { name: "Black", color: "blue" },
+                { name: "Asian", color: "red" },
+                { name: "Hispanic", color: "green" },
+                { name: "Multiracial", color: "pink" },
+                { name: "Middle Eastern", color: "yellow" },
+            ];
+            var legend = svg
+                .append("g")
+                .attr("class", "legend")
+                .attr("transform", "translate(" + (width - 90) + ", 0)");
+
+            var legendItem = legend
+                .selectAll(".legend-item")
+                .data(legendData)
+                .enter()
+                .append("g")
+                .attr("class", "legend-item")
+                .attr("transform", function (d, i) {
+                    return "translate(0," + i * 20 + ")";
+                });
+
+            legendItem
+                .append("circle")
+                .attr("cx", 5)
+                .attr("cy", 11)
+                .attr("r", 8)
+                .attr("fill", function (d) {
+                    return d.color;
+                });
+
+            legendItem
+                .append("text")
+                .attr("x", 20)
+                .attr("y", 10)
+                .attr("dy", "0.35em")
+                .text(function (d) {
+                    return d.name;
+                });
+            var winsData = [];
+            const awards = Array.from(
+                d3.group(data, (d) => d.award),
+                ([key, value]) => {
+                    heights = [0, 0, 0, 0, 0];
+
+                    var nonWhite = value.filter(function (d) {
+                        return d.race_ethnicity !== "White";
+                    }).length;
+
+                    var Black = value.filter(function (d) {
+                        return d.race_ethnicity === "Black";
+                    }).length;
+
+                    var Asian = value.filter(function (d) {
+                        return d.race_ethnicity === "Asian";
+                    }).length;
+
+                    var MiddleEastern = value.filter(function (d) {
+                        return d.race_ethnicity === "Middle Eastern";
+                    }).length;
+
+                    var Hispanic = value.filter(function (d) {
+                        return d.race_ethnicity === "Hispanic";
+                    }).length;
+
+                    var Multiracial = value.filter(function (d) {
+                        return d.race_ethnicity === "Multiracial";
+                    }).length;
+
+                    heights[0] = (Black / nonWhite) * 100;
+                    heights[1] = (Asian / nonWhite) * 100;
+                    heights[2] = (MiddleEastern / nonWhite) * 100;
+                    heights[3] = (Hispanic / nonWhite) * 100;
+                    heights[4] = (Multiracial / nonWhite) * 100;
+
+                    races = [
+                        "Black",
+                        "Asian",
+                        "Middle Eastern",
+                        "Hispanic",
+                        "Multiracial",
+                    ];
+
+                    winsData.push({
+                        award: key,
+                        race: races[0],
+                        percentage: heights[0],
+                    });
+                    winsData.push({
+                        award: key,
+                        race: races[1],
+                        percentage: heights[1],
+                    });
+                    winsData.push({
+                        award: key,
+                        race: races[2],
+                        percentage: heights[2],
+                    });
+                    winsData.push({
+                        award: key,
+                        race: races[3],
+                        percentage: heights[3],
+                    });
+                    winsData.push({
+                        award: key,
+                        race: races[4],
+                        percentage: heights[4],
+                    });
+                }
+            );
+
+            console.log("wins == ", winsData);
+
+            const xScale = d3
+                .scaleBand()
+                .domain(winsData.map((d) => d.award))
+                .range([margin.left, width - margin.right])
+                .padding(0.1);
+            const yScale = d3
+                .scaleLinear()
+                .domain([0, 100])
+                .range([height - margin.bottom, margin.top]);
+
+            const colorScale = d3
+                .scaleOrdinal()
+                .domain([
+                    "Black",
+                    "Asian",
+                    "Hispanic",
+                    "Multiracial",
+                    "Middle Eastern",
+                ])
+                .range(["blue", "red", "green", "pink", "yellow"]);
+            colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"];
+
+            var rect = svg
+                .selectAll("rect")
+                .data(winsData)
+                .enter()
+                .append("rect")
+                .attr("x", (d) => xScale(d.award))
+                .attr("y", (d) => yScale(d.percentage))
+                .attr("height", (d) => yScale(0) - yScale(d.percentage))
+                .attr("width", xScale.bandwidth())
+                .attr("fill", (d) => colorScale(d.race));
+
+            const xAxis = d3.axisBottom(xScale);
+            const ytick = d3.format(".0f");
+            const yAxis = d3.axisLeft(yScale).tickFormat((d) => ytick(d) + "%");
+
+            svg
+                .append("g")
+                .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+                .call(xAxis);
+
+            svg
+                .append("g")
+                .attr("transform", "translate(" + margin.left + ",0)")
+                .call(yAxis);
+
+            svg.append("text").attr("x", "300").attr("y", "500").text("Awards");
+            svg
+                .append("text")
+                .attr("x", "-190")
+                .attr("y", "30")
+                .attr("transform", "rotate(-90,20, 50)")
+                .text("Percentage");
+
+            rect.attr("y", function (d, index) {
+                var height = 0;
+                for (var j = index - (index % 5); j < index; j++) {
+                    if (winsData[j].award === d.award) {
+                        height += yScale(winsData[j].percentage);
+                    }
+                }
+                return (yScale(d.percentage) + height) % 460;
+            });
+        };
+        async function loadData() {
+            data = await d3.csv("oscar_demographics.csv", (d) => {
+                return d;
+            });
+            render(data);
+        }
+        loadData();
+    </script>
+</body>
+
+</html>
